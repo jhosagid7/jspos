@@ -9,11 +9,11 @@ use App\Models\Configuration;
 use Illuminate\Support\Facades\Log;
 
 
-use LaravelDaily\Invoices\Invoice;
-use LaravelDaily\Invoices\Classes\Buyer;
-use LaravelDaily\Invoices\Classes\Party;
-use LaravelDaily\Invoices\Classes\Seller;
-use LaravelDaily\Invoices\Classes\InvoiceItem;
+use Jhosagid\Invoices\Invoice;
+use Jhosagid\Invoices\Classes\Buyer;
+use Jhosagid\Invoices\Classes\Party;
+use Jhosagid\Invoices\Classes\Seller;
+use Jhosagid\Invoices\Classes\InvoiceItem;
 
 
 trait PdfInvoiceTrait
@@ -81,7 +81,7 @@ trait PdfInvoiceTrait
 
                 foreach ($sale->details as $detail) {
 
-                    $items[] = InvoiceItem::make($detail->product->name)->reference($detail->product->sku)->pricePerUnit($detail->sale_price)->quantity($detail->quantity);
+                    $items[] = InvoiceItem::make($detail->product->name)->reference($detail->product->sku ? $detail->product->sku : '')->pricePerUnit($detail->sale_price)->quantity($detail->quantity);
                 }
 
                 $notes = [
@@ -168,7 +168,7 @@ trait PdfInvoiceTrait
 
                 foreach ($sale->details as $detail) {
 
-                    $items[] = InvoiceItem::make($detail->product->name)->reference($detail->product->sku)->pricePerUnit($detail->sale_price)->quantity($detail->quantity);
+                    $items[] = InvoiceItem::make($detail->product->name)->reference($detail->product->sku ? $detail->product->sku : '')->pricePerUnit($detail->sale_price)->quantity($detail->quantity);
                 }
 
                 $notes = [

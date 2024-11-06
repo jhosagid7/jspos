@@ -41,7 +41,6 @@ class Sales extends Component
 
     function updatedSearch3()
     {
-        // dd($this->search3);
         if (Strlen($this->search3) > 1) {
             $this->products = Product::with('priceList')
                 ->where('sku', 'like', "%{$this->search3}%")
@@ -52,11 +51,9 @@ class Sales extends Component
                 $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
             }
         } else {
-            // $this->search3 = '';
             $this->products = [];
             $this->dispatch('noty', msg: 'NO EXISTE EL CÓDIGO ESCANEADO');
         }
-        // $this->products;
     }
 
     public function selectProduct($index)
@@ -119,18 +116,22 @@ class Sales extends Component
 
     public function mount()
     {
+        // Verifica si hay un carrito en la sesión
         if (session()->has("cart")) {
-            $this->cart = session("cart");
+            // Carga el carrito desde la sesión y asegúrate de que sea una colección
+            $this->cart = collect(session("cart"));
         } else {
+            // Inicializa el carrito como una colección vacía
             $this->cart = new Collection;
         }
 
+        // Configuración de la sesión
         session(['map' => 'Ventas', 'child' => ' Componente ', 'pos' => 'MÓDULO DE VENTAS']);
 
+        // Carga la configuración y los bancos
         $this->config = Configuration::first();
-
         $this->banks = Bank::orderBy('sort')->get();
-        $this->bank = $this->banks[0]->id;
+        $this->bank = $this->banks->isNotEmpty() ? $this->banks[0]->id : null; // Asegúrate de que haya bancos disponibles
     }
 
 
@@ -163,7 +164,7 @@ class Sales extends Component
     function ScanningCode($barcode)
     {
         $product = Product::with('priceList')
-            ->where('sku', $barcode)
+            ->where('sku', 'like', "%{$barcode}%")
             ->orWhere('name', 'like', "%{$barcode}%")
             ->first();
         if ($product) {
@@ -180,7 +181,6 @@ class Sales extends Component
             $this->updateQty(null, $qty, $product->id);
             return;
         }
-
         if (count($product->priceList) > 0)
             $salePrice = ($product->priceList[0]['price']);
         else
@@ -253,7 +253,6 @@ class Sales extends Component
 
     function Calculator($price, $qty)
     {
-        // dd($qty);
         if ($this->config->vat > 0) {
             $iva = ($this->config->vat / 100); // 0.16;
             $salePrice = $price;
@@ -293,50 +292,45 @@ class Sales extends Component
 
     public function updateQty($uid, $cant = 1, $product_id = null)
     {
-
-        // dd($uid, $cant);
-        if (!is_numeric($cant)) {
+        // Validar que la cantidad sea numérica y mayor que cero
+        if (!is_numeric($cant) || $cant <= 0) {
             $this->dispatch('noty', msg: 'EL VALOR DE LA CANTIDAD ES INCORRECTO');
             return;
         }
 
+        // Obtener el carrito actual
         $mycart = $this->cart;
 
-        if ($product_id == null) {
-            $oldItem = $mycart->where('id', $uid)->first();
-        } else {
-            $oldItem = $mycart->where('pid', $product_id)->first();
+        // Buscar el artículo en el carrito
+        $oldItem = $product_id === null ? $mycart->firstWhere('id', $uid) : $mycart->firstWhere('pid', $product_id);
+
+        // Verificar si el artículo existe
+        if (!$oldItem) {
+            $this->dispatch('noty', msg: 'EL ARTÍCULO NO SE ENCUENTRA EN EL CARRITO');
+            return;
         }
 
-
+        // Crear un nuevo artículo con la cantidad actualizada
         $newItem = $oldItem;
-        $newItem['qty'] = $product_id == null ? $this->formatAmount($cant) : $this->formatAmount($newItem['qty'] + $cant);
+        $newItem['qty'] = $product_id === null ? $this->formatAmount($cant) : $this->formatAmount($oldItem['qty'] + $cant);
 
-        // dd($this->formatAmount($newItem['qty']));
-        // dd($cant + $newItem['qty'] . ' - ' . $cant . ' ' . $newItem['qty']);
+        // Calcular valores
         $values = $this->Calculator($newItem['sale_price'], $newItem['qty']);
-
         $newItem['tax'] = $values['iva'];
-
         $newItem['total'] = $this->formatAmount($values['total']);
 
-
-
-        //delete from cart
+        // Actualizar el carrito
         $this->cart = $this->cart->reject(function ($product) use ($uid, $product_id) {
             return $product['id'] === $uid || $product['pid'] === $product_id;
         });
 
-        $this->save();
+        // Agregar el nuevo artículo al carrito
+        $this->cart->push($newItem);
 
-        //add item to cart
-        $this->cart->push(Arr::add(
-            $newItem,
-            null,
-            null
-        ));
+        // Actualizar la sesión
+        session(['cart' => $this->cart->toArray()]);
 
-        $this->save();
+        // Emitir eventos
         $this->dispatch('refresh');
         $this->dispatch('noty', msg: 'CANTIDAD ACTUALIZADA');
     }
@@ -458,7 +452,6 @@ class Sales extends Component
     #[On('sale_customer')]
     function setCustomer($customer)
     {
-        //dd($customer);
         session(['sale_customer' => $customer]);
         $this->customer = $customer;
     }
@@ -482,7 +475,6 @@ class Sales extends Component
 
         $type = $this->payType;
 
-        //dd(session("cart"));
         //type:  1 = efectivo, 2 = crédito, 3 = depósito
         if ($this->formatAmount($this->totalCart) <= 0) {
             $this->dispatch('noty', msg: 'AGREGA PRODUCTOS AL CARRITO');

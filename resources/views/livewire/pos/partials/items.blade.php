@@ -13,10 +13,10 @@
                         </div>
 
                         @if (!empty($products))
-                            <ul class="list-group mt-0 position-absolute w-100 bg-white border-0"
+                            <ul class="mt-0 bg-white border-0 list-group position-absolute w-100"
                                 style="z-index: 1000; max-height: 200px; overflow-y: auto;">
                                 @foreach ($products as $index => $product)
-                                    <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-2"
+                                    <li class="p-2 list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                                         wire:click="selectProduct({{ $index }})"
                                         style="cursor: pointer; {{ $selectedIndex === $index ? 'background-color: #e9ecef;' : '' }}">
                                         <div>
@@ -121,10 +121,11 @@
                                                 class="decrement-touchspin btn-touchspin"><i
                                                     class="fa fa-minus text-gray"></i>
                                             </button>
-                                            <input
-                                                wire:keydown.enter.prevent="updateQty('{{ $item['id'] }}', $event.target.value )"
-                                                class=" input-touchspin" type="number" step="0.01"
-                                                value="{{ $item['qty'] }}" id="p{{ $item['pid'] }}">
+
+                                            <input wire:model="cart.{{ $loop->index }}.qty"
+                                                wire:keydown.enter.prevent="updateQty('{{ $item['id'] }}', $event.target.value)"
+                                                class="input-touchspin" type="number" step="0.01"
+                                                id="p{{ $item['pid'] }}">
 
                                             <button
                                                 onclick="updateQty({{ $item['pid'] }},'{{ $item['id'] }}', 'increment')"

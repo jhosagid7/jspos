@@ -92,8 +92,6 @@ class PostProduct extends Form
 
     function store()
     {
-
-
         $this->validate();
 
         $product =  Product::create([
@@ -107,8 +105,6 @@ class PostProduct extends Form
             'supplier_id' => $this->supplier_id,
             'category_id' => $this->category_id
         ]);
-
-
 
         //
         if (!empty($this->gallery)) {
@@ -143,18 +139,6 @@ class PostProduct extends Form
         }
 
         $this->reset();
-
-        // $this->resetExcept(['product']);
-
-        // $this->product = new Product();
-        // $this->product->type = 'service';
-        // $this->product->status = 'available';
-        // $this->product->manage_stock = 1;
-
-        // $this->product->supplier_id = $this->suppliers->first()->id ?? null;
-
-        //
-
     }
 
 

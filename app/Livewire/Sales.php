@@ -565,7 +565,6 @@ class Sales extends Component
                 'notes' => $notes
             ]);
 
-
             // get cart session
             $cart = session("cart");
 
@@ -589,9 +588,6 @@ class Sales extends Component
                 Product::find($item['pid'])->decrement('stock_qty', $item['qty']);
             }
 
-
-
-
             DB::commit();
 
             $this->dispatch('noty', msg: 'VENTA REGISTRADA CON ÉXITO');
@@ -608,20 +604,14 @@ class Sales extends Component
 
             $this->dispatch('print-json', data: $b64);
 
-            // return redirect()->action(
-            //     [Self::class, 'generateInvoice'],
-            //     ['sale' => $sale]
-            // );
-            // return redirect()->name("pos.sales.generateInvoice");
-            // return $this->generateInvoice($sale);
-
-
             //
         } catch (\Exception $th) {
             DB::rollBack();
             $this->dispatch('noty', msg: "Error al intentar guardar la venta \n {$th->getMessage()}");
         }
     }
+
+
 
     function validateCash()
     {

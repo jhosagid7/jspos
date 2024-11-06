@@ -538,7 +538,7 @@
                 @endif
                     <tr>
                         <td colspan="{{ $invoice->table_columns - 2 }}" class="border-0"></td>
-                        <td class="pl-0 title-data text-right"><strong>{{ __('invoices::invoice.total_amount') }}</strong></td>
+                        <td class="pl-0 text-right title-data"><strong>{{ __('invoices::invoice.total_amount') }}</strong></td>
                         <td class="pr-0 text-right total-amount">
                             {{ $invoice->formatCurrency($invoice->total_amount) }}
                         </td>

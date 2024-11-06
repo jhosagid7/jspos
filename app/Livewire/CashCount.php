@@ -109,6 +109,7 @@ class CashCount extends Component
                 ->when($this->user_id != 0, function ($qry) {
                     $qry->where('user_id', $this->user_id);
                 })
+                ->where('status', '<>', 'returned')
                 ->select('total', 'cash', 'change', 'type')
                 ->get();
 

@@ -306,7 +306,6 @@ class Sales extends Component
     }
 
 
-
     public function removeItem($id)
     {
         $this->cart = $this->cart->reject(function ($product) use ($id) {
@@ -318,51 +317,6 @@ class Sales extends Component
         $this->dispatch('noty', msg: 'PRODUCTO ELIMINADO');
     }
 
-
-    // public function updateQty($uid, $cant = 1, $product_id = null)
-    // {
-    //     // Validar que la cantidad sea numérica y mayor que cero
-    //     if (!is_numeric($cant) || $cant <= 0) {
-    //         $this->dispatch('noty', msg: 'EL VALOR DE LA CANTIDAD ES INCORRECTO');
-    //         return;
-    //     }
-
-    //     // Obtener el carrito actual
-    //     $mycart = $this->cart;
-
-    //     // Buscar el artículo en el carrito
-    //     $oldItem = $product_id === null ? $mycart->firstWhere('id', $uid) : $mycart->firstWhere('pid', $product_id);
-
-    //     // Verificar si el artículo existe
-    //     if (!$oldItem) {
-    //         $this->dispatch('noty', msg: 'EL ARTÍCULO NO SE ENCUENTRA EN EL CARRITO');
-    //         return;
-    //     }
-
-    //     // Crear un nuevo artículo con la cantidad actualizada
-    //     $newItem = $oldItem;
-    //     $newItem['qty'] = $product_id === null ? $this->formatAmount($cant) : $this->formatAmount($oldItem['qty'] + $cant);
-
-    //     // Calcular valores
-    //     $values = $this->Calculator($newItem['sale_price'], $newItem['qty']);
-    //     $newItem['tax'] = $values['iva'];
-    //     $newItem['total'] = $this->formatAmount($values['total']);
-
-    //     // Actualizar el carrito
-    //     $this->cart = $this->cart->reject(function ($product) use ($uid, $product_id) {
-    //         return $product['id'] === $uid || $product['pid'] === $product_id;
-    //     });
-
-    //     // Agregar el nuevo artículo al carrito
-    //     $this->cart->push($newItem);
-
-    //     // Actualizar la sesión
-    //     session(['cart' => $this->cart->toArray()]);
-
-    //     // Emitir eventos
-    //     $this->dispatch('refresh');
-    //     $this->dispatch('noty', msg: 'CANTIDAD ACTUALIZADA');
-    // }
 
     public function updateQty($uid, $cant = 1, $product_id = null)
     {
@@ -384,13 +338,10 @@ class Sales extends Component
         }
 
         $product = Product::find($product_id);
-        // Mensaje de depuración
-
 
         // Verificar si la cantidad total a agregar es mayor que el stock disponible
 
         if ($product->manage_stock == 1) {
-            // dd($product);
             $newQty = $cant; // solo se agrega la cantidad que se está agregando
             if ($product->stock_qty < $newQty) {
                 \Log::info("Intentando agregar al carrito: {$product->name}, Cantidad solicitada: {$newQty}, Stock disponible: {$product->stock_qty}, Cantidad en carrito: {$oldItem['qty']}");
@@ -399,45 +350,9 @@ class Sales extends Component
             }
         }
 
-        // Buscar el artículo en el carrito
-        // $oldItem = $product_id === null ? $mycart->firstWhere('id', $uid) : $mycart->firstWhere('pid', $product_id);
-
-        // if ($product_id == null) {
-        //     $oldItem = $mycart->firstWhere('id', $uid);
-        // } else {
-        //     $oldItem = $mycart->firstWhere('pid', $product_id);
-        // }
-
-        // // Verificar si el artículo existe
-        // if (!$oldItem) {
-        //     $this->dispatch('noty', msg: 'EL ARTÍCULO NO SE ENCUENTRA EN EL CARRITO');
-        //     return;
-        // }
-
-        // Obtener el producto original para verificar el stock
-        // $product = Product::find($oldItem[]); // Asegúrate de que este método obtenga el producto correctamente
-
-        // // Verificar si el producto existe
-        // if (!$product) {
-        //     $this->dispatch('noty', msg: 'EL PRODUCTO NO EXISTE');
-        //     return;
-        // }
-
-        // Calcular la cantidad total que se intentará establecer
-        // $totalQtyToSet = $product_id === null ? $this->formatAmount($cant) : $this->formatAmount($oldItem['qty'] + $cant);
-
-        // Verificar si la cantidad total a establecer es mayor que el stock disponible
-        // if (
-        //     $totalQtyToSet > $product->stock_qty
-        // ) {
-        //     $this->dispatch('noty', msg: 'No hay suficiente stock para el producto: ' . $product->name);
-        //     return;
-        // }
-
         // Crear un nuevo artículo con la cantidad actualizada
         $newItem = $oldItem;
-        // $newItem['qty'] = $totalQtyToSet; // Actualizar la cantidad
-        // $newItem['qty'] = $product_id === null ? $this->formatAmount($cant) : $this->formatAmount($oldItem['qty'] + $cant);
+
         $newItem['qty'] = $this->formatAmount($cant);
 
 

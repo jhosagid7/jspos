@@ -603,7 +603,7 @@ class Sales extends Component
             $cart = session("cart");
 
             // insert sale detail
-            $details = $cart->map(function ($item) use ($sale) {
+            $details = collect($cart)->map(function ($item) use ($sale) {
                 return [
                     'product_id' => $item['pid'],
                     'sale_id' => $sale->id,

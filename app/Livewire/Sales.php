@@ -177,8 +177,28 @@ class Sales extends Component
 
     function AddProduct(Product $product, $qty = 1)
     {
+
+        // Obtener la cantidad actual del producto en el carrito
+        $currentQtyInCart = 0;
         if ($this->inCart($product->id)) {
-            $this->updateQty(null, $qty, $product->id);
+            // Si el producto ya está en el carrito, obtener la cantidad actual
+            $currentQtyInCart = $this->getQtyInCart($product->id);
+        }
+
+        // Calcular la cantidad total que se intentará agregar
+        $totalQtyToAdd = $currentQtyInCart + $qty;
+
+        // Mensaje de depuración
+        \Log::info("Intentando agregar al carrito: {$product->name}, Cantidad solicitada: {$qty}, Stock disponible: {$product->stock_qty}, Cantidad en carrito: {$currentQtyInCart}");
+        if ($product->manage_stock == 1) {
+            // Verificar si la cantidad total a agregar es mayor que el stock disponible
+            if ($totalQtyToAdd > $product->stock_qty) {
+                $this->dispatch('noty', msg: 'No hay suficiente stock para el producto: ' . $product->name);
+                return;
+            }
+        }
+        if ($this->inCart($product->id)) {
+            $this->updateQty(null, $totalQtyToAdd, $product->id);
             return;
         }
         if (count($product->priceList) > 0)
@@ -249,7 +269,16 @@ class Sales extends Component
         $this->dispatch('noty', msg: 'PRODUCTO AGREGADO AL CARRITO');
     }
 
-
+    // Método para obtener la cantidad de un producto en el carrito
+    function getQtyInCart($productId)
+    {
+        foreach ($this->cart as $item) {
+            if ($item['pid'] == $productId) {
+                return $item['qty'];
+            }
+        }
+        return 0; // Si no se encuentra el producto, retornar 0
+    }
 
     function Calculator($price, $qty)
     {
@@ -290,8 +319,54 @@ class Sales extends Component
     }
 
 
+    // public function updateQty($uid, $cant = 1, $product_id = null)
+    // {
+    //     // Validar que la cantidad sea numérica y mayor que cero
+    //     if (!is_numeric($cant) || $cant <= 0) {
+    //         $this->dispatch('noty', msg: 'EL VALOR DE LA CANTIDAD ES INCORRECTO');
+    //         return;
+    //     }
+
+    //     // Obtener el carrito actual
+    //     $mycart = $this->cart;
+
+    //     // Buscar el artículo en el carrito
+    //     $oldItem = $product_id === null ? $mycart->firstWhere('id', $uid) : $mycart->firstWhere('pid', $product_id);
+
+    //     // Verificar si el artículo existe
+    //     if (!$oldItem) {
+    //         $this->dispatch('noty', msg: 'EL ARTÍCULO NO SE ENCUENTRA EN EL CARRITO');
+    //         return;
+    //     }
+
+    //     // Crear un nuevo artículo con la cantidad actualizada
+    //     $newItem = $oldItem;
+    //     $newItem['qty'] = $product_id === null ? $this->formatAmount($cant) : $this->formatAmount($oldItem['qty'] + $cant);
+
+    //     // Calcular valores
+    //     $values = $this->Calculator($newItem['sale_price'], $newItem['qty']);
+    //     $newItem['tax'] = $values['iva'];
+    //     $newItem['total'] = $this->formatAmount($values['total']);
+
+    //     // Actualizar el carrito
+    //     $this->cart = $this->cart->reject(function ($product) use ($uid, $product_id) {
+    //         return $product['id'] === $uid || $product['pid'] === $product_id;
+    //     });
+
+    //     // Agregar el nuevo artículo al carrito
+    //     $this->cart->push($newItem);
+
+    //     // Actualizar la sesión
+    //     session(['cart' => $this->cart->toArray()]);
+
+    //     // Emitir eventos
+    //     $this->dispatch('refresh');
+    //     $this->dispatch('noty', msg: 'CANTIDAD ACTUALIZADA');
+    // }
+
     public function updateQty($uid, $cant = 1, $product_id = null)
     {
+
         // Validar que la cantidad sea numérica y mayor que cero
         if (!is_numeric($cant) || $cant <= 0) {
             $this->dispatch('noty', msg: 'EL VALOR DE LA CANTIDAD ES INCORRECTO');
@@ -301,18 +376,70 @@ class Sales extends Component
         // Obtener el carrito actual
         $mycart = $this->cart;
 
-        // Buscar el artículo en el carrito
-        $oldItem = $product_id === null ? $mycart->firstWhere('id', $uid) : $mycart->firstWhere('pid', $product_id);
-
-        // Verificar si el artículo existe
-        if (!$oldItem) {
-            $this->dispatch('noty', msg: 'EL ARTÍCULO NO SE ENCUENTRA EN EL CARRITO');
-            return;
+        if ($product_id == null) {
+            $oldItem = $mycart->firstWhere('id', $uid);
+            $product_id = $oldItem['pid'];
+        } else {
+            $oldItem = $mycart->firstWhere('pid', $product_id);
         }
+
+        $product = Product::find($product_id);
+        // Mensaje de depuración
+
+
+        // Verificar si la cantidad total a agregar es mayor que el stock disponible
+
+        if ($product->manage_stock == 1) {
+            // dd($product);
+            $newQty = $cant; // solo se agrega la cantidad que se está agregando
+            if ($product->stock_qty < $newQty) {
+                \Log::info("Intentando agregar al carrito: {$product->name}, Cantidad solicitada: {$newQty}, Stock disponible: {$product->stock_qty}, Cantidad en carrito: {$oldItem['qty']}");
+                $this->dispatch('noty', msg: 'No hay suficiente stock para el producto: ' . $product->name);
+                return;
+            }
+        }
+
+        // Buscar el artículo en el carrito
+        // $oldItem = $product_id === null ? $mycart->firstWhere('id', $uid) : $mycart->firstWhere('pid', $product_id);
+
+        // if ($product_id == null) {
+        //     $oldItem = $mycart->firstWhere('id', $uid);
+        // } else {
+        //     $oldItem = $mycart->firstWhere('pid', $product_id);
+        // }
+
+        // // Verificar si el artículo existe
+        // if (!$oldItem) {
+        //     $this->dispatch('noty', msg: 'EL ARTÍCULO NO SE ENCUENTRA EN EL CARRITO');
+        //     return;
+        // }
+
+        // Obtener el producto original para verificar el stock
+        // $product = Product::find($oldItem[]); // Asegúrate de que este método obtenga el producto correctamente
+
+        // // Verificar si el producto existe
+        // if (!$product) {
+        //     $this->dispatch('noty', msg: 'EL PRODUCTO NO EXISTE');
+        //     return;
+        // }
+
+        // Calcular la cantidad total que se intentará establecer
+        // $totalQtyToSet = $product_id === null ? $this->formatAmount($cant) : $this->formatAmount($oldItem['qty'] + $cant);
+
+        // Verificar si la cantidad total a establecer es mayor que el stock disponible
+        // if (
+        //     $totalQtyToSet > $product->stock_qty
+        // ) {
+        //     $this->dispatch('noty', msg: 'No hay suficiente stock para el producto: ' . $product->name);
+        //     return;
+        // }
 
         // Crear un nuevo artículo con la cantidad actualizada
         $newItem = $oldItem;
-        $newItem['qty'] = $product_id === null ? $this->formatAmount($cant) : $this->formatAmount($oldItem['qty'] + $cant);
+        // $newItem['qty'] = $totalQtyToSet; // Actualizar la cantidad
+        // $newItem['qty'] = $product_id === null ? $this->formatAmount($cant) : $this->formatAmount($oldItem['qty'] + $cant);
+        $newItem['qty'] = $this->formatAmount($cant);
+
 
         // Calcular valores
         $values = $this->Calculator($newItem['sale_price'], $newItem['qty']);
